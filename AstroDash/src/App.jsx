@@ -1,16 +1,38 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import './App.css'
 
 function App() {
   const [seriesInfo, setseriesInfo] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sliderYear, setSliderYear] = useState(0);
+
   const apiKey = import.meta.env.VITE_SPOONACULAR_API_KEY
 
+  const { minYear, maxYear } = useMemo(() => {
+    const allYears = seriesInfo.map(m => m.releaseDate?.year).filter(y => y !== undefined && y !== null);
+    if (allYears.length === 0) return { minYear: 1900, maxYear: new Date().getFullYear() };
+    return { minYear: Math.min(...allYears), maxYear: Math.max(...allYears) };
+  }, [seriesInfo]);
+
+  useEffect(() => {
+    if (seriesInfo.length > 0) {
+      setSliderYear(minYear);
+    }
+  }, [seriesInfo, minYear]);
+
   const filteredSeries = seriesInfo.filter((movie) => {
-    if (!searchQuery) return true;
-    const year = parseInt(searchQuery);
-    if (isNaN(year)) return true;
-    return movie.releaseDate?.year >= year;
+    let matchTitle = true;
+    if (searchQuery) {
+      const title = movie.originalTitleText?.text?.toLowerCase() || "";
+      matchTitle = title.includes(searchQuery.toLowerCase());
+    }
+
+    let matchYear = true;
+    if (sliderYear > 0) {
+      matchYear = movie.releaseDate?.year >= sliderYear;
+    }
+
+    return matchTitle && matchYear;
   });
 
   const getMostCommonYear = () => {
@@ -93,12 +115,30 @@ function App() {
         <div className="movie-list">
           {seriesInfo.length > 0 ? (
               <>  
-                <input
-                  type='text'
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <p>Enter a year to filter by... it will filter the series from that year and after</p>
+                <div>
+                  <input
+                    type='text'
+                    value={searchQuery}
+                    placeholder='Search by title...'
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                
+                <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+                  <label htmlFor="yearSlider" style={{ display: 'block', marginBottom: '10px' }}>
+                    Filter by release year ({sliderYear}):
+                  </label>
+                  <input 
+                    type="range" 
+                    id="yearSlider"
+                    min={minYear} 
+                    max={maxYear} 
+                    value={sliderYear} 
+                    onChange={(e) => setSliderYear(Number(e.target.value))} 
+                    style={{ width: '100%', maxWidth: '300px' }}
+                  />
+                  <p>Showing series released in {sliderYear} and after</p>
+                </div>
               </>
               ) : <p></p>}
 
