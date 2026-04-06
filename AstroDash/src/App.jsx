@@ -2,15 +2,22 @@ import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
-  const [movieInfo, setMovieInfo] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [seriesInfo, setseriesInfo] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const apiKey = import.meta.env.VITE_SPOONACULAR_API_KEY
 
+  const filteredSeries = seriesInfo.filter((movie) => {
+    if (!searchQuery) return true;
+    const year = parseInt(searchQuery);
+    if (isNaN(year)) return true;
+    return movie.releaseDate?.year >= year;
+  });
+
   const getMostCommonYear = () => {
-    if (movieInfo.length === 0) return "N/A";
+    if (filteredSeries.length === 0) return "N/A";
 
     const yearCounts = {};
-    movieInfo.forEach((movie) => {
+    filteredSeries.forEach((movie) => {
       const year = movie.releaseDate?.year;
       if (year) {
         yearCounts[year] = (yearCounts[year] || 0) + 1;
@@ -30,8 +37,8 @@ function App() {
   };
 
   const getYearRange = () => {
-    if (movieInfo.length === 0) return "N/A";
-    const years = movieInfo.map((m) => m.releaseDate?.year).filter((y) => y !== undefined && y !== null);
+    if (filteredSeries.length === 0) return "N/A";
+    const years = filteredSeries.map((m) => m.releaseDate?.year).filter((y) => y !== undefined && y !== null);
     if (years.length === 0) return "N/A";
     
     const min = Math.min(...years);
@@ -43,21 +50,16 @@ function App() {
   const handleGetRandomSeries = () => {
     return (
       <div>
-        {movieInfo ? movieInfo.map((movie) => (
+        {filteredSeries ? filteredSeries.map((movie) => (
           <div className="movie-card" key={movie.id}>
-            <img src={movie.primaryImage.url} alt={movie.originalTitleText.text} width={200}/>
-            <h2>{movie.originalTitleText.text}</h2>
-            <p>Release Date: {movie.releaseDate.month}/{movie.releaseDate.day}/{movie.releaseDate.year}</p>
+            <img src={movie.primaryImage?.url} alt={movie.originalTitleText?.text} width={200}/>
+            <h2>{movie.originalTitleText?.text}</h2>
+            <p>Release Date: {movie.releaseDate?.month}/{movie.releaseDate?.day}/{movie.releaseDate?.year}</p>
 
           </div>
         )) : <p></p>}
       </div>
     )
-  }
-
-  const handleFilterByYear = (year) => {
-    const filteredMovies = movieInfo.filter((movie) => movie.releaseDate.year >= year);
-    setMovieInfo(filteredMovies);
   }
 
   const fetchData = async () => {
@@ -75,7 +77,7 @@ function App() {
       });
       
       const data = await response.json();
-      setMovieInfo(data.results);
+      setseriesInfo(data.results);
       console.log(data.results);
     } catch (error) {
       console.error("Error fetching movie AKAs:", error);
@@ -89,22 +91,21 @@ function App() {
         <h2>click the button to get 10 random series </h2>
         <button onClick={fetchData}>Get Random Series</button>
         <div className="movie-list">
-          {movieInfo.length > 0 ? (
+          {seriesInfo.length > 0 ? (
               <>  
                 <input
                   type='text'
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <p>Enter a year to filter by... it will filter the movies from that year and after</p>
-                <button onClick={() => handleFilterByYear(searchQuery)}>Search!</button>
+                <p>Enter a year to filter by... it will filter the series from that year and after</p>
               </>
               ) : <p></p>}
 
-              {movieInfo.length > 0 ? (
+              {filteredSeries.length > 0 ? (
                 <>
                   <h3>Dataset Stats:</h3>
-                  <p>Number of movies: {movieInfo.length}</p>
+                  <p>Number of series: {filteredSeries.length}</p>
                   <p>Common year of release: {getMostCommonYear()}</p>
                   <p>Ranges of years: {getYearRange()}</p>
                 </>
