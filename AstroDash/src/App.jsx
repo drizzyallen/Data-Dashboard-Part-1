@@ -21,18 +21,24 @@ function App() {
   }, [seriesInfo, minYear]);
 
   const filteredSeries = seriesInfo.filter((movie) => {
-    let matchTitle = true;
+    let matchSearch = true;
     if (searchQuery) {
-      const title = movie.originalTitleText?.text?.toLowerCase() || "";
-      matchTitle = title.includes(searchQuery.toLowerCase());
+      const year = parseInt(searchQuery);
+      if (!isNaN(year)) {
+        matchSearch = movie.releaseDate?.year >= year;
+      }
     }
 
     let matchYear = true;
     if (sliderYear > 0) {
-      matchYear = movie.releaseDate?.year >= sliderYear;
+      // If the slider is just set to the minimum possible year, 
+      // we consider the year filter "inactive" so we don't accidentally hide items lacking a year
+      if (sliderYear !== minYear) {
+        matchYear = movie.releaseDate?.year ? movie.releaseDate.year >= sliderYear : false;
+      }
     }
 
-    return matchTitle && matchYear;
+    return matchSearch && matchYear;
   });
 
   const getMostCommonYear = () => {
@@ -119,9 +125,9 @@ function App() {
                   <input
                     type='text'
                     value={searchQuery}
-                    placeholder='Search by title...'
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
+                  <p>Enter a year to filter by... it will filter the series from that year and after</p>
                 </div>
                 
                 <div style={{ marginTop: '20px', marginBottom: '20px' }}>
